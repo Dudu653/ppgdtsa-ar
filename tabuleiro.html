@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tabuleiros A4 — Organização do Sistema agroindustrial</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #e2e8f0;
+      color: #1e293b;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+       gap: 24px;
+      min-height: 100vh;
+    }
+
+    /* Barra de ferramentas na tela (oculta na impressão) */
+    .toolbar {
+      width: 100%;
+      max-width: 1122px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .toolbar-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toolbar-title h1 {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .toolbar-title p {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 13px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+    }
+
+    .btn.active-scenario {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #ffffff;
+    }
+
+    .btn-primary {
+      background: #065f46;
+      border-color: #065f46;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #047857;
+    }
+
+    .boards-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* Folha A4 Paisagem (297mm x 210mm) */
+    .board-sheet {
+      width: 297mm;
+      height: 210mm;
+      background: #faf5e6;
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .board-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Permite ocultar ou exibir as guias pontilhadas */
+    .hide-guides .placement-guides {
+      display: none;
+    }
+
+    .hidden-sheet {
+      display: none !important;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+      }
+
+      .toolbar {
+        display: none !important;
+      }
+
+      .boards-wrapper {
+        gap: 0;
+      }
+
+      .board-sheet {
+        width: 297mm;
+        height: 210mm;
+        border-radius: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+
+      .board-sheet:last-of-type {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="toolbar-title">
+      <h1>🗺️ Tabuleiros Cenário A4 — Organização do Sistema agroindustrial</h1>
+      <p>Dois cenários topográficos distintos no mesmo estilo visual (calibrados para leitura ArUco sem interferência).</p>
+    </div>
+    <div class="toolbar-actions">
+      <button id="btnScen1" class="btn active-scenario">🗺️ Cenário 1 (Vale Oeste)</button>
+      <button id="btnScen2" class="btn">🏞️ Cenário 2 (Confluência Central)</button>
+      <button id="btnScenBoth" class="btn">📑 Ver/Imprimir Ambos</button>
+      <button id="btnToggleGuides" class="btn" title="Mostrar ou ocultar as cantoneiras sutis de apoio para cartas">
+        🎯 Guias: Ocultas
+      </button>
+      <a href="./cards.html" class="btn">🃏 Mini-Cartas</a>
+      <a href="./index.html" class="btn">📷 Câmera AR</a>
+      <button id="btnPrintBoard" class="btn btn-primary">🖨️ Imprimir A4</button>
+    </div>
+  </header>
+
+  <div id="boardsWrapper" class="boards-wrapper hide-guides">
+    <!-- =====================================================================
+         CENÁRIO 1: VALE HÍDRICO OESTE & ENCOSTA NORTE
+         ===================================================================== -->
+    <section id="sheetScenario1" class="board-sheet">
+      <svg class="board-svg" viewBox="0 0 297 210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="innerBoardClip1">
+            <rect x="5" y="5" width="287" height="200" rx="6" />
+          </clipPath>
+
+          <linearGradient id="pastureBase1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e3f0d8" />
+            <stop offset="48%" stop-color="#eff6e4" />
+            <stop offset="100%" stop-color="#f7f1de" />
+          </linearGradient>
+
+          <linearGradient id="hillElevation1" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#cbe3bd" />
+            <stop offset="100%" stop-color="#dfeed3" />
+          </linearGradient>
+
+          <linearGradient id="hillElevation2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#bcd9ab" />
+            <stop offset="100%" stop-color="#cfe6c1" />
+          </linearGradient>
+
+          <linearGradient id="valleyWater1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#cde9f2" />
+            <stop offset="50%" stop-color="#d8eff6" />
+            <stop offset="100%" stop-color="#e2f3f8" />
+          </linearGradient>
+
+          <radialGradient id="fertilePlateau1" cx="55%" cy="58%" r="48%">
+            <stop offset="0%" stop-color="#f4ebd0" />
+            <stop offset="70%" stop-color="#edf2dc" />
+            <stop offset="100%" stop-color="#e5efd4" />
+          </radialGradient>
+
+          <g id="cardSlotGuide">
+            <rect x="-13.5" y="-14.5" width="27" height="29" rx="3" fill="#ffffff" fill-opacity="0.28" />
+            <path d="M -13.5 -9.5 L -13.5 -12.5 A 2 2 0 0 1 -11.5 -14.5 L -8.5 -14.5" fill="none" stroke="#8da382" stroke-width="0.65" stroke-linecap="round" />
+            <path d="M 8.5 -14.5 L 11.5 -14.5 A 2 2 0 0 1 13.5 -12.5 L 13.5 -9.5" fill="none" stroke="#8da382" stroke-width="0.65" stroke-linecap="round" />
+            <path d="M -13.5 9.5 L -13.5 12.5 A 2 2 0 0 0 -11.5 14.5 L -8.5 14.5" fill="none" stroke="#8da382" stroke-width="0.65" stroke-linecap="round" />
+            <path d="M 8.5 14.5 L 11.5 14.5 A 2 2 0 0 0 13.5 12.5 L 13.5 9.5" fill="none" stroke="#8da382" stroke-width="0.65" stroke-linecap="round" />
+            <circle cx="0" cy="0" r="0.65" fill="#9fb394" />
+          </g>
+
+          <g id="softGrassTuft">
+            <path d="M 0 0 Q -1.5 -2.8 -3 -3.5 M 0 0 Q 0 -3.5 0.5 -4.2 M 0 0 Q 1.8 -2.6 3.2 -3.2" fill="none" stroke="#9ab88d" stroke-width="0.55" stroke-linecap="round" />
+          </g>
+        </defs>
+
+        <rect x="0" y="0" width="297" height="210" fill="#faf5e6" />
+
+        <g clip-path="url(#innerBoardClip1)">
+          <rect x="5" y="5" width="287" height="200" fill="url(#pastureBase1)" />
+
+          <!-- Platô Central Produtivo -->
+          <ellipse cx="168" cy="122" rx="118" ry="74" fill="url(#fertilePlateau1)" />
+
+          <!-- Encosta Norte / Noroeste -->
+          <path d="M 5 5 L 292 5 L 292 58 Q 245 72 195 56 Q 145 40 96 64 Q 48 88 5 72 Z" fill="url(#hillElevation1)" />
+          <path d="M 5 5 L 235 5 Q 205 46 158 38 Q 112 30 74 52 Q 36 72 5 56 Z" fill="url(#hillElevation2)" />
+
+          <!-- Curvas de Nível Topográficas -->
+          <path d="M 6 68 Q 50 84 98 60 Q 146 36 196 52 Q 246 68 291 54" fill="none" stroke="#a3c293" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 6 52 Q 38 68 76 48 Q 114 26 160 34 Q 206 42 238 6" fill="none" stroke="#93b582" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 6 34 Q 42 46 72 28 Q 104 12 145 18 Q 175 22 192 6" fill="none" stroke="#86ab74" stroke-width="0.5" stroke-dasharray="2.5 2" />
+
+          <!-- Colina Suave Sudeste -->
+          <path d="M 195 205 Q 225 162 292 154 L 292 205 Z" fill="url(#hillElevation1)" opacity="0.75" />
+          <path d="M 192 204 Q 224 160 291 152" fill="none" stroke="#a3c293" stroke-width="0.55" stroke-dasharray="3 2" />
+
+          <!-- Vale Hídrico Oeste -->
+          <path d="M 52 34 Q 66 75 50 116 Q 34 156 76 206" fill="none" stroke="#cee6d5" stroke-width="34" stroke-linecap="round" opacity="0.65" />
+          <path d="M 52 34 Q 66 75 50 116 Q 34 156 76 206" fill="none" stroke="url(#valleyWater1)" stroke-width="16" stroke-linecap="round" />
+          <ellipse cx="52" cy="118" rx="22" ry="15" fill="url(#valleyWater1)" />
+          <ellipse cx="52" cy="34" rx="14" ry="10" fill="url(#valleyWater1)" />
+
+          <path d="M 42 115 Q 52 112 62 115 M 45 122 Q 53 119 61 122" fill="none" stroke="#9ecde0" stroke-width="0.6" stroke-linecap="round" />
+          <path d="M 46 34 Q 52 31 58 34" fill="none" stroke="#9ecde0" stroke-width="0.6" stroke-linecap="round" />
+
+          <!-- Estrada Vicinal -->
+          <path d="M 294 114 Q 225 116 178 128 Q 132 140 94 128 Q 70 120 64 118" fill="none" stroke="#ead8b1" stroke-width="11" stroke-linecap="round" />
+          <path d="M 294 114 Q 225 116 178 128 Q 132 140 94 128 Q 70 120 64 118" fill="none" stroke="#d5be90" stroke-width="0.7" stroke-dasharray="3.5 2.5" stroke-linecap="round" />
+
+          <path d="M 178 128 Q 182 92 212 76" fill="none" stroke="#ead8b1" stroke-width="8" stroke-linecap="round" />
+          <path d="M 178 128 Q 182 92 212 76" fill="none" stroke="#d5be90" stroke-width="0.6" stroke-dasharray="3 2.5" stroke-linecap="round" />
+
+          <path d="M 148 134 Q 144 166 168 182" fill="none" stroke="#ead8b1" stroke-width="8" stroke-linecap="round" />
+          <path d="M 148 134 Q 144 166 168 182" fill="none" stroke="#d5be90" stroke-width="0.6" stroke-dasharray="3 2.5" stroke-linecap="round" />
+
+          <!-- Ponte de madeira -->
+          <g transform="translate(58, 112)">
+            <rect x="0" y="0" width="12.5" height="10" rx="1.5" fill="#e5c99b" stroke="#b59463" stroke-width="0.6" />
+            <line x1="3.1" y1="0.4" x2="3.1" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+            <line x1="6.2" y1="0.4" x2="6.2" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+            <line x1="9.3" y1="0.4" x2="9.3" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+          </g>
+
+          <!-- Tufos de vegetação -->
+          <use href="#softGrassTuft" x="28" y="82" />
+          <use href="#softGrassTuft" x="88" y="92" />
+          <use href="#softGrassTuft" x="135" y="62" />
+          <use href="#softGrassTuft" x="248" y="96" />
+          <use href="#softGrassTuft" x="112" y="168" />
+          <use href="#softGrassTuft" x="226" y="148" />
+          <use href="#softGrassTuft" x="262" y="166" />
+
+          <!-- Guias opcionais -->
+          <g class="placement-guides">
+            <use href="#cardSlotGuide" x="102" y="45" />
+            <use href="#cardSlotGuide" x="135" y="45" />
+            <use href="#cardSlotGuide" x="168" y="45" />
+            <use href="#cardSlotGuide" x="201" y="45" />
+            <use href="#cardSlotGuide" x="52" y="50" />
+            <use href="#cardSlotGuide" x="52" y="84" />
+            <use href="#cardSlotGuide" x="52" y="118" />
+            <use href="#cardSlotGuide" x="52" y="152" />
+            <use href="#cardSlotGuide" x="112" y="90" />
+            <use href="#cardSlotGuide" x="145" y="90" />
+            <use href="#cardSlotGuide" x="178" y="90" />
+            <use href="#cardSlotGuide" x="218" y="82" />
+            <use href="#cardSlotGuide" x="251" y="82" />
+            <use href="#cardSlotGuide" x="112" y="148" />
+            <use href="#cardSlotGuide" x="145" y="148" />
+            <use href="#cardSlotGuide" x="178" y="148" />
+            <use href="#cardSlotGuide" x="214" y="142" />
+            <use href="#cardSlotGuide" x="247" y="142" />
+          </g>
+        </g>
+
+        <!-- Moldura Externa -->
+        <rect x="5" y="5" width="287" height="200" rx="6" fill="none" stroke="#8c6d46" stroke-width="1.2" />
+        <rect x="7.5" y="7.5" width="282" height="195" rx="4.5" fill="none" stroke="#b89b72" stroke-width="0.5" stroke-dasharray="4 2" />
+
+        <!-- Título Superior Esquerdo Sutil -->
+        <g transform="translate(14, 15)" opacity="0.68">
+          <text x="0" y="0" font-family="'Segoe UI', system-ui, sans-serif" font-size="3.9" font-weight="700" letter-spacing="0.22" fill="#4a3822" dominant-baseline="middle">
+            ORGANIZAÇÃO DO SISTEMA AGROINDUSTRIAL
+          </text>
+        </g>
+
+        <!-- Rosa dos Ventos -->
+        <g transform="translate(272, 22)">
+          <circle cx="0" cy="0" r="9" fill="#fffdf7" fill-opacity="0.82" stroke="#9c7e54" stroke-width="0.6" />
+          <polygon points="0,-7.5 1.8,-1.8 0,-3 -1.8,-1.8" fill="#6b8e5a" />
+          <polygon points="0,7.5 1.5,1.8 0,3 -1.5,1.8" fill="#bfa57a" />
+          <polygon points="7.5,0 1.8,1.5 3,0 1.8,-1.5" fill="#bfa57a" />
+          <polygon points="-7.5,0 -1.8,1.5 -3,0 -1.8,-1.5" fill="#bfa57a" />
+          <text x="0" y="-9.8" font-family="'Segoe UI', sans-serif" font-size="3.4" font-weight="900" fill="#5c4428" text-anchor="middle">N</text>
+        </g>
+
+        <!-- Canto Inferior Esquerdo: @ppgdtsa.ufpel sutil -->
+        <g transform="translate(14, 194)" opacity="0.72">
+          <rect x="0" y="-4.2" width="5.2" height="5.2" rx="1.4" fill="none" stroke="#5c4428" stroke-width="0.55" />
+          <circle cx="2.6" cy="-1.6" r="1.25" fill="none" stroke="#5c4428" stroke-width="0.5" />
+          <circle cx="4.0" cy="-3.0" r="0.3" fill="#5c4428" />
+          <text x="7.2" y="-1.4" font-family="'Segoe UI', system-ui, sans-serif" font-size="3.9" font-weight="700" letter-spacing="0.08" fill="#5c4428" dominant-baseline="middle">
+            @ppgdtsa.ufpel
+          </text>
+        </g>
+
+        <!-- Canto Inferior Direito: Logo PPGDTSA -->
+        <image class="ppgdtsa-board-logo" href="./src/assets/ppgdtsa_logo.png" x="228" y="175" width="54" height="24" preserveAspectRatio="xMidYMid meet" />
+      </svg>
+    </section>
+
+    <!-- =====================================================================
+         CENÁRIO 2: CONFLUÊNCIA HÍDRICA CENTRAL, SERRA NOROESTE & TERRAÇOS LESTE
+         ===================================================================== -->
+    <section id="sheetScenario2" class="board-sheet hidden-sheet">
+      <svg class="board-svg" viewBox="0 0 297 210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="innerBoardClip2">
+            <rect x="5" y="5" width="287" height="200" rx="6" />
+          </clipPath>
+
+          <linearGradient id="pastureBase2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#e5f1da" />
+            <stop offset="52%" stop-color="#f1f7e7" />
+            <stop offset="100%" stop-color="#f6efdc" />
+          </linearGradient>
+
+          <radialGradient id="centralValleyPlateau" cx="46%" cy="54%" r="50%">
+            <stop offset="0%" stop-color="#f5ecd2" />
+            <stop offset="68%" stop-color="#eef3de" />
+            <stop offset="100%" stop-color="#e3eed2" />
+          </radialGradient>
+        </defs>
+
+        <rect x="0" y="0" width="297" height="210" fill="#faf5e6" />
+
+        <g clip-path="url(#innerBoardClip2)">
+          <rect x="5" y="5" width="287" height="200" fill="url(#pastureBase2)" />
+
+          <!-- Várzea e Platô em Anfiteatro Central -->
+          <ellipse cx="142" cy="116" rx="122" ry="76" fill="url(#centralValleyPlateau)" />
+
+          <!-- Cordilheira / Encosta Noroeste (Canto Superior Esquerdo) -->
+          <path d="M 5 5 L 146 5 Q 132 42 94 58 Q 52 75 5 86 Z" fill="url(#hillElevation1)" />
+          <path d="M 5 5 L 108 5 Q 92 32 62 46 Q 32 58 5 64 Z" fill="url(#hillElevation2)" />
+          <path d="M 6 82 Q 52 71 92 54 Q 128 38 142 6" fill="none" stroke="#a3c293" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 6 60 Q 34 54 60 42 Q 88 28 104 6" fill="none" stroke="#93b582" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 6 38 Q 28 34 46 22 Q 62 12 72 6" fill="none" stroke="#86ab74" stroke-width="0.5" stroke-dasharray="2.5 2" />
+
+          <!-- Terraços e Encosta Nordeste / Leste -->
+          <path d="M 178 5 L 292 5 L 292 124 Q 252 114 234 82 Q 216 50 178 5 Z" fill="url(#hillElevation1)" />
+          <path d="M 212 5 L 292 5 L 292 88 Q 260 78 244 52 Q 228 26 212 5 Z" fill="url(#hillElevation2)" />
+          <path d="M 182 6 Q 218 48 236 78 Q 254 110 291 120" fill="none" stroke="#a3c293" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 216 6 Q 230 26 246 50 Q 262 74 291 84" fill="none" stroke="#93b582" stroke-width="0.55" stroke-dasharray="3 2" />
+          <path d="M 248 6 Q 258 24 270 38 Q 280 50 291 56" fill="none" stroke="#86ab74" stroke-width="0.5" stroke-dasharray="2.5 2" />
+
+          <!-- Colina Suave Sudoeste -->
+          <path d="M 5 156 Q 48 164 78 205 L 5 205 Z" fill="url(#hillElevation1)" opacity="0.72" />
+          <path d="M 6 152 Q 50 160 82 204" fill="none" stroke="#a3c293" stroke-width="0.55" stroke-dasharray="3 2" />
+
+          <!-- =================================================================
+               HIDROGRAFIA CENÁRIO 2: NASCENTE NORTE + CONFLUÊNCIA + AÇUDE CENTRAL-SUL
+               ================================================================= -->
+          <!-- Faixa aluvial úmida de proteção (APP) em diagonal sinuosa -->
+          <path d="M 164 24 Q 172 68 148 104 Q 124 140 132 186" fill="none" stroke="#cee6d5" stroke-width="32" stroke-linecap="round" opacity="0.65" />
+          <!-- Braço afluente vindo da Serra Noroeste -->
+          <path d="M 96 48 Q 122 76 148 104" fill="none" stroke="#cee6d5" stroke-width="22" stroke-linecap="round" opacity="0.58" />
+
+          <!-- Curso principal de água e afluente -->
+          <path d="M 96 48 Q 122 76 148 104" fill="none" stroke="url(#valleyWater1)" stroke-width="9" stroke-linecap="round" />
+          <path d="M 164 24 Q 172 68 148 104 Q 124 140 132 186" fill="none" stroke="url(#valleyWater1)" stroke-width="15" stroke-linecap="round" />
+
+          <!-- Nascente Superior Norte e Grande Açude na Baixada Sul -->
+          <ellipse cx="164" cy="24" rx="13" ry="9" fill="url(#valleyWater1)" />
+          <ellipse cx="94" cy="46" rx="10" ry="7" fill="url(#valleyWater1)" />
+          <ellipse cx="130" cy="162" rx="25" ry="16" fill="url(#valleyWater1)" />
+
+          <!-- Ondulações sutis na água -->
+          <path d="M 158 24 Q 164 21 170 24" fill="none" stroke="#9ecde0" stroke-width="0.6" stroke-linecap="round" />
+          <path d="M 118 159 Q 130 155 142 159 M 122 166 Q 131 163 140 166" fill="none" stroke="#9ecde0" stroke-width="0.6" stroke-linecap="round" />
+
+          <!-- =================================================================
+               ESTRADA VICINAL EM "Y" COM DUAS PONTES DE MADEIRA
+               ================================================================= -->
+          <!-- Estrada atravessando de Oeste a Sudeste pelo vale central -->
+          <path d="M 5 118 Q 58 112 108 118 Q 158 124 206 142 Q 252 158 292 156" fill="none" stroke="#ead8b1" stroke-width="10.5" stroke-linecap="round" />
+          <path d="M 5 118 Q 58 112 108 118 Q 158 124 206 142 Q 252 158 292 156" fill="none" stroke="#d5be90" stroke-width="0.7" stroke-dasharray="3.5 2.5" stroke-linecap="round" />
+
+          <!-- Ramal subindo para o Platô Leste -->
+          <path d="M 184 134 Q 196 98 228 88" fill="none" stroke="#ead8b1" stroke-width="8" stroke-linecap="round" />
+          <path d="M 184 134 Q 196 98 228 88" fill="none" stroke="#d5be90" stroke-width="0.6" stroke-dasharray="3 2.5" stroke-linecap="round" />
+
+          <!-- Ramal subindo para a Meia-Encosta Oeste -->
+          <path d="M 68 115 Q 64 86 42 74" fill="none" stroke="#ead8b1" stroke-width="7.5" stroke-linecap="round" />
+          <path d="M 68 115 Q 64 86 42 74" fill="none" stroke="#d5be90" stroke-width="0.6" stroke-dasharray="3 2.5" stroke-linecap="round" />
+
+          <!-- Ponte de madeira central sobre o córrego -->
+          <g transform="translate(133, 115) rotate(8)">
+            <rect x="0" y="0" width="13" height="10" rx="1.5" fill="#e5c99b" stroke="#b59463" stroke-width="0.6" />
+            <line x1="3.2" y1="0.4" x2="3.2" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+            <line x1="6.5" y1="0.4" x2="6.5" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+            <line x1="9.8" y1="0.4" x2="9.8" y2="9.6" stroke="#c8ab7b" stroke-width="0.45" />
+          </g>
+
+          <!-- Tufos campestres -->
+          <use href="#softGrassTuft" x="34" y="142" />
+          <use href="#softGrassTuft" x="82" y="96" />
+          <use href="#softGrassTuft" x="86" y="156" />
+          <use href="#softGrassTuft" x="198" y="64" />
+          <use href="#softGrassTuft" x="176" y="172" />
+          <use href="#softGrassTuft" x="254" y="132" />
+          <use href="#softGrassTuft" x="238" y="176" />
+
+          <!-- Guias opcionais adaptadas ao Cenário 2 -->
+          <g class="placement-guides">
+            <use href="#cardSlotGuide" x="36" y="50" />
+            <use href="#cardSlotGuide" x="69" y="50" />
+            <use href="#cardSlotGuide" x="36" y="92" />
+            <use href="#cardSlotGuide" x="69" y="92" />
+            <use href="#cardSlotGuide" x="102" y="92" />
+
+            <use href="#cardSlotGuide" x="52" y="148" />
+            <use href="#cardSlotGuide" x="85" y="148" />
+
+            <use href="#cardSlotGuide" x="164" y="48" />
+            <use href="#cardSlotGuide" x="148" y="86" />
+            <use href="#cardSlotGuide" x="130" y="162" />
+
+            <use href="#cardSlotGuide" x="196" y="96" />
+            <use href="#cardSlotGuide" x="229" y="96" />
+            <use href="#cardSlotGuide" x="262" y="96" />
+
+            <use href="#cardSlotGuide" x="182" y="162" />
+            <use href="#cardSlotGuide" x="215" y="162" />
+            <use href="#cardSlotGuide" x="248" y="162" />
+          </g>
+        </g>
+
+        <!-- Moldura Externa -->
+        <rect x="5" y="5" width="287" height="200" rx="6" fill="none" stroke="#8c6d46" stroke-width="1.2" />
+        <rect x="7.5" y="7.5" width="282" height="195" rx="4.5" fill="none" stroke="#b89b72" stroke-width="0.5" stroke-dasharray="4 2" />
+
+        <!-- Título Superior Esquerdo Sutil -->
+        <g transform="translate(14, 15)" opacity="0.68">
+          <text x="0" y="0" font-family="'Segoe UI', system-ui, sans-serif" font-size="3.9" font-weight="700" letter-spacing="0.22" fill="#4a3822" dominant-baseline="middle">
+            ORGANIZAÇÃO DO SISTEMA AGROINDUSTRIAL
+          </text>
+        </g>
+
+        <!-- Rosa dos Ventos -->
+        <g transform="translate(272, 22)">
+          <circle cx="0" cy="0" r="9" fill="#fffdf7" fill-opacity="0.82" stroke="#9c7e54" stroke-width="0.6" />
+          <polygon points="0,-7.5 1.8,-1.8 0,-3 -1.8,-1.8" fill="#6b8e5a" />
+          <polygon points="0,7.5 1.5,1.8 0,3 -1.5,1.8" fill="#bfa57a" />
+          <polygon points="7.5,0 1.8,1.5 3,0 1.8,-1.5" fill="#bfa57a" />
+          <polygon points="-7.5,0 -1.8,1.5 -3,0 -1.8,-1.5" fill="#bfa57a" />
+          <text x="0" y="-9.8" font-family="'Segoe UI', sans-serif" font-size="3.4" font-weight="900" fill="#5c4428" text-anchor="middle">N</text>
+        </g>
+
+        <!-- Canto Inferior Esquerdo: @ppgdtsa.ufpel sutil -->
+        <g transform="translate(14, 194)" opacity="0.72">
+          <rect x="0" y="-4.2" width="5.2" height="5.2" rx="1.4" fill="none" stroke="#5c4428" stroke-width="0.55" />
+          <circle cx="2.6" cy="-1.6" r="1.25" fill="none" stroke="#5c4428" stroke-width="0.5" />
+          <circle cx="4.0" cy="-3.0" r="0.3" fill="#5c4428" />
+          <text x="7.2" y="-1.4" font-family="'Segoe UI', system-ui, sans-serif" font-size="3.9" font-weight="700" letter-spacing="0.08" fill="#5c4428" dominant-baseline="middle">
+            @ppgdtsa.ufpel
+          </text>
+        </g>
+
+        <!-- Canto Inferior Direito: Logo PPGDTSA -->
+        <image class="ppgdtsa-board-logo" href="./src/assets/ppgdtsa_logo.png" x="228" y="175" width="54" height="24" preserveAspectRatio="xMidYMid meet" />
+      </svg>
+    </section>
+  </div>
+
+  <script>
+    const btnScen1 = document.getElementById('btnScen1');
+    const btnScen2 = document.getElementById('btnScen2');
+    const btnScenBoth = document.getElementById('btnScenBoth');
+    const sheet1 = document.getElementById('sheetScenario1');
+    const sheet2 = document.getElementById('sheetScenario2');
+
+    function setScenarioMode(mode) {
+      btnScen1.classList.toggle('active-scenario', mode === '1');
+      btnScen2.classList.toggle('active-scenario', mode === '2');
+      btnScenBoth.classList.toggle('active-scenario', mode === 'both');
+
+      sheet1.classList.toggle('hidden-sheet', mode === '2');
+      sheet2.classList.toggle('hidden-sheet', mode === '1');
+    }
+
+    btnScen1.addEventListener('click', () => setScenarioMode('1'));
+    btnScen2.addEventListener('click', () => setScenarioMode('2'));
+    btnScenBoth.addEventListener('click', () => setScenarioMode('both'));
+
+    const btnToggle = document.getElementById('btnToggleGuides');
+    const wrapper = document.getElementById('boardsWrapper');
+    let guidesVisible = false;
+
+    btnToggle.addEventListener('click', () => {
+      guidesVisible = !guidesVisible;
+      wrapper.classList.toggle('hide-guides', !guidesVisible);
+      btnToggle.textContent = guidesVisible ? '🎯 Guias: Ativadas' : '🎯 Guias: Ocultas';
+    });
+
+    document.getElementById('btnPrintBoard').addEventListener('click', () => {
+      window.print();
+    });
+
+    // Remove o fundo branco de ambos os logos PPGDTSA para pousarem direto sobre o mapa
+    const rawImg = new Image();
+    rawImg.src = './src/assets/ppgdtsa_logo.png';
+    rawImg.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = rawImg.width;
+      c.height = rawImg.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(rawImg, 0, 0);
+      const imgData = ctx.getImageData(0, 0, c.width, c.height);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
+        const minC = Math.min(r, g, b);
+        if (minC > 245) {
+          d[i + 3] = 0;
+        } else if (minC > 228 && Math.max(r, g, b) - minC < 12) {
+          d[i + 3] = Math.round(((245 - minC) / 17) * d[i + 3]);
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const cleanDataUrl = c.toDataURL('image/png');
+      document.querySelectorAll('.ppgdtsa-board-logo').forEach(el => {
+        el.setAttribute('href', cleanDataUrl);
+      });
+    };
+  </script>
+</body>
+</html>

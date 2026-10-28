@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folha de Cartas — Organização do Sistema agroindustrial</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 20px;
+    }
+
+    .toolbar {
+      max-width: 1080px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .toolbar h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #ffffff;
+    }
+
+    .cards-grid {
+      max-width: 920px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      gap: 10px;
+    }
+
+    /* Mini-Carta Compacta para Cenário em Folha A4 */
+    .minimal-card {
+      background: #ffffff;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      padding: 10px 10px 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .aruco-svg {
+      width: var(--marker-screen-size, 74px);
+      height: var(--marker-screen-size, 74px);
+      display: block;
+      shape-rendering: crispEdges;
+    }
+
+    .card-title {
+      margin-top: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #334155;
+      text-align: center;
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .cards-grid {
+        max-width: 100%;
+        grid-template-columns: repeat(var(--print-cols, 6), var(--card-print-w, 27mm));
+        gap: 2.5mm;
+        justify-content: center;
+      }
+      .minimal-card {
+        border: 1px dashed #94a3b8;
+        border-radius: 0;
+        padding: 3.2mm 3.2mm 2mm;
+        width: var(--card-print-w, 27mm);
+      }
+      .aruco-svg {
+        width: var(--marker-print-size, 20mm);
+        height: var(--marker-print-size, 20mm);
+      }
+      .card-title {
+        margin-top: 1.4mm;
+        font-size: 6.5pt;
+        color: #1e293b;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <h1>Mini-Cartas p/ Cenário em Folha A4 (26 Elementos)</h1>
+    <div class="toolbar-actions">
+      <select id="sizePreset" class="btn" title="Tamanho de impressão das cartas">
+        <option value="a4" selected>📐 Mini A4 (Marcador 20mm — Ideal p/ Cenário A4)</option>
+        <option value="micro">🔍 Micro A4 (Marcador 16mm — Cenário Compacto)</option>
+        <option value="medio">📄 Médio (Marcador 26mm)</option>
+      </select>
+      <a href="./tabuleiro.html" class="btn">🗺️ Imprimir Tabuleiro A4</a>
+      <a href="./index.html" class="btn">⬅️ Abrir Câmera AR</a>
+      <button id="btnPrint" class="btn btn-primary">🖨️ Imprimir Folha A4</button>
+    </div>
+  </header>
+
+  <main class="cards-grid" id="cardsGrid"></main>
+
+  <script type="module">
+    import { CARDS_CATALOG } from './src/data/cardsCatalog.js';
+
+    const grid = document.getElementById('cardsGrid');
+    document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+    const sizePreset = document.getElementById('sizePreset');
+    sizePreset.addEventListener('change', () => {
+      const root = document.documentElement;
+      if (sizePreset.value === 'micro') {
+        root.style.setProperty('--marker-screen-size', '60px');
+        root.style.setProperty('--marker-print-size', '16mm');
+        root.style.setProperty('--card-print-w', '22.5mm');
+        root.style.setProperty('--print-cols', '7');
+      } else if (sizePreset.value === 'medio') {
+        root.style.setProperty('--marker-screen-size', '96px');
+        root.style.setProperty('--marker-print-size', '26mm');
+        root.style.setProperty('--card-print-w', '34mm');
+        root.style.setProperty('--print-cols', '5');
+      } else {
+        root.style.setProperty('--marker-screen-size', '74px');
+        root.style.setProperty('--marker-print-size', '20mm');
+        root.style.setProperty('--card-print-w', '27mm');
+        root.style.setProperty('--print-cols', '6');
+      }
+    });
+
+    function createArucoSVG(matrix) {
+      const cells = [];
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          let isWhite = false;
+          if (r >= 1 && r <= 5 && c >= 1 && c <= 5) {
+            isWhite = matrix[r - 1][c - 1] === 1;
+          }
+          if (isWhite) {
+            cells.push(`<rect x="${c}" y="${r}" width="1" height="1" fill="#ffffff" />`);
+          }
+        }
+      }
+      return `
+        <svg class="aruco-svg" viewBox="0 0 7 7" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="7" height="7" fill="#000000" />
+          ${cells.join('')}
+        </svg>
+      `;
+    }
+
+    for (const card of CARDS_CATALOG) {
+      const el = document.createElement('div');
+      el.className = 'minimal-card';
+      el.innerHTML = `
+        ${createArucoSVG(card.matrix)}
+        <div class="card-title">${card.shortName}</div>
+      `;
+      grid.appendChild(el);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Organização do Sistema agroindustrial — PPGDTSA UFPel</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #000;
+      color: #18120e;
+      user-select: none;
+    }
+
+    /* Câmera e Cena 3D em Tela Cheia 100% Limpa */
+    #viewportContainer {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #arVideo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    #arOverlayCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #viewportContainer canvas:not(#arOverlayCanvas) {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* =====================================================================
+       HUD DE PERSONAGEM DE JOGO (PÍLULA COMPACTA NO CANTO SUPERIOR DIREITO)
+       + LISTA DE COMBOS IDENTIFICADOS LOGO ABAIXO
+       ===================================================================== */
+    .corner-score-hud {
+      position: fixed;
+      top: 12px;
+      right: 10px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      width: 148px;
+      max-width: 44vw;
+      pointer-events: none;
+    }
+
+    /* Pílula de Personagem estilo RPG / Cuphead (compacta horizontalmente) */
+    .game-char-pill {
+      position: relative;
+      width: 100%;
+      min-height: 54px;
+      background: linear-gradient(180deg, #fffdf6 0%, #f5e4be 100%);
+      border: 2.5px solid #18120e;
+      border-radius: 999px;
+      padding: 4px 5px 4px 5px;
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.85),
+        0 3.5px 0 #18120e,
+        0 7px 16px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease;
+    }
+
+    .game-char-pill:active {
+      transform: translateY(2px);
+    }
+
+    /* Medalhão Circular do Score (lado esquerdo da pílula) */
+    .gauge-wrapper {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f3e0b5 100%);
+      border: 2px solid #18120e;
+      box-shadow: 0 2px 0 #18120e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-svg {
+      width: 36px;
+      height: 36px;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(24, 18, 14, 0.15);
+      stroke-width: 9;
+    }
+
+    .gauge-fg {
+      fill: none;
+      stroke: #10b981;
+      stroke-width: 9;
+      stroke-linecap: round;
+      stroke-dasharray: 238.76;
+      stroke-dashoffset: 238.76;
+      transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
+    }
+
+    .gauge-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 1px;
+    }
+
+    #totalScoreValue {
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: #18120e;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+    }
+
+    .gauge-sublabel {
+      font-size: 0.31rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b4c30;
+      margin-top: 1px;
+    }
+
+    /* Coluna Central da Pílula: Status + Barra de HP/Sustentabilidade + Mini-Pilares */
+    .char-stats-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .char-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+    }
+
+    #scoreRatingBadge {
+      font-size: 0.54rem;
+      font-weight: 900;
+      color: #18120e;
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Barra de Progresso estilo HP/XP de Jogo */
+    .game-hp-track {
+      position: relative;
+      width: 100%;
+      height: 8px;
+      background: #291f18;
+      border: 1.5px solid #18120e;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+
+    #scoreHpFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+      border-radius: 999px;
+      transition: width 0.35s ease, background 0.3s ease;
+    }
+
+    /* Divisórias estilo barra de jogo (25%, 50%, 75%) */
+    .game-hp-ticks {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 24%,
+        rgba(24, 18, 14, 0.45) 24%,
+        rgba(24, 18, 14, 0.45) 25.5%
+      );
+      pointer-events: none;
+    }
+
+    /* 4 Mini-barras rápidas dos pilares dentro da pílula */
+    .pillar-micro-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      width: 100%;
+    }
+
+    .micro-pip {
+      height: 3.5px;
+      background: rgba(24, 18, 14, 0.16);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .micro-pip-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Avatar da Produtora Rural (lado direito da pílula, com chapéu saltando levemente da borda) */
+    .char-avatar-frame {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 35%, #fef08a 0%, #f59e0b 100%);
+      border: 2px solid #18120e;
+      box-shadow: 0 2px 0 #18120e;
+      overflow: visible;
+    }
+
+    #producerCharCanvas {
+      position: absolute;
+      width: 50px;
+      height: 52px;
+      left: -5px;
+      top: -10px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+      pointer-events: none;
+    }
+
+    /* Gaveta retrô dos 4 pilares (abre ao tocar na pílula da personagem) */
+    .pillars-drawer {
+      display: none;
+      width: 100%;
+      margin-top: 6px;
+      background: #fcf4df;
+      border: 2.5px solid #18120e;
+      border-radius: 14px;
+      padding: 7px 8px;
+      box-shadow: 0 3px 0 #18120e, 0 6px 16px rgba(0, 0, 0, 0.45);
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .corner-score-hud.expanded .pillars-drawer {
+      display: flex;
+    }
+
+    .mini-pillar {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mini-pillar-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #18120e;
+    }
+
+    .mini-track {
+      height: 6px;
+      background: #e6d5b8;
+      border: 1.5px solid #18120e;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .mini-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    /* =====================================================================
+       LISTA DE COMBOS IDENTIFICADOS NA TELA (LOGO ABAIXO DA BARRA DE PERSONAGEM)
+       ===================================================================== */
+    #activeCombosContainer {
+      display: none;
+      width: 100%;
+      margin-top: 6px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      pointer-events: auto;
+    }
+
+    .corner-score-hud.expanded #activeCombosContainer.has-combos {
+      display: flex;
+    }
+
+    .combos-header-chip {
+      font-size: 0.50rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #fef3c7;
+      background: #18120e;
+      padding: 2px 8px;
+      border-radius: 999px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    #activeCombosList {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 44vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    #activeCombosList::-webkit-scrollbar {
+      display: none;
+    }
+
+    .combo-pill-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      padding: 3.5px 6px;
+      border-radius: 11px;
+      border: 2px solid #18120e;
+      box-shadow: 0 2.5px 0 #18120e, 0 4px 8px rgba(0, 0, 0, 0.35);
+      background: linear-gradient(135deg, #fffdf5 0%, #f5e6c4 100%);
+      animation: comboSlideIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    .combo-pill-item.tier-agrosystem {
+      background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+    }
+
+    .combo-pill-item.tier-fusion {
+      background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%);
+    }
+
+    .combo-pill-item.tier-forest {
+      background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%);
+    }
+
+    .combo-pill-item.tier-conflict {
+      background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    }
+
+    @keyframes comboSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    .combo-icon {
+      font-size: 0.82rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .combo-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.55rem;
+      font-weight: 800;
+      color: #18120e;
+      line-height: 1.1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .combo-badge {
+      font-size: 0.48rem;
+      font-weight: 900;
+      padding: 1.5px 4.5px;
+      border-radius: 999px;
+      background: #18120e;
+      color: #fffdf5;
+      flex-shrink: 0;
+      letter-spacing: 0.01em;
+    }
+
+    .tier-agrosystem .combo-badge {
+      background: #92400e;
+      color: #fef3c7;
+    }
+
+    .tier-fusion .combo-badge,
+    .tier-forest .combo-badge {
+      background: #065f46;
+      color: #ecfdf5;
+    }
+
+    .tier-conflict .combo-badge {
+      background: #991b1b;
+      color: #fef2f2;
+    }
+
+    /* =====================================================================
+       BARRA INFERIOR DE AÇÕES E BOTÃO DE TIRAR FOTO COM MOLDURA
+       ===================================================================== */
+    .corner-tools {
+      position: fixed;
+      bottom: 14px;
+      left: 14px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2.5px solid #18120e;
+      background: #fcf4df;
+      box-shadow: 0 3px 0 #18120e, 0 5px 12px rgba(0, 0, 0, 0.35);
+      color: #18120e;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.12s ease;
+    }
+
+    .icon-btn:active {
+      transform: translateY(2px);
+    }
+
+    .photo-capture-btn {
+      height: 42px;
+      padding: 0 15px;
+      border-radius: 999px;
+      border: 2.5px solid #18120e;
+      background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.75),
+        0 3.5px 0 #18120e,
+        0 6px 14px rgba(0, 0, 0, 0.42);
+      color: #18120e;
+      font-size: 0.80rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .photo-capture-btn:active {
+      transform: translateY(2px);
+    }
+
+    /* Flash da câmera ao tirar foto */
+    #cameraFlashOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: #fffdf5;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease-out;
+    }
+
+    /* Modal de Pré-visualização e Salvamento da Foto com Moldura */
+    #photoPreviewModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      background: rgba(12, 10, 8, 0.84);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .photo-modal-card {
+      width: 100%;
+      max-width: 440px;
+      max-height: 92vh;
+      background: linear-gradient(180deg, #fffdf6 0%, #f3e2be 100%);
+      border: 3px solid #18120e;
+      border-radius: 22px;
+      box-shadow: 0 6px 0 #18120e, 0 20px 45px rgba(0, 0, 0, 0.65);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: modalPop 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      from {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .photo-modal-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+
+    .photo-modal-title {
+      font-size: 0.88rem;
+      font-weight: 900;
+      color: #18120e;
+    }
+
+    .photo-modal-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #18120e;
+      background: #fee2e2;
+      color: #991b1b;
+      font-weight: 900;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #18120e;
+    }
+
+    .photo-preview-frame {
+      width: 100%;
+      max-height: 68vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 2px solid #18120e;
+      background: #18120e;
+    }
+
+    #capturedPhotoImg {
+      max-width: 100%;
+      max-height: 67vh;
+      width: auto;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .photo-modal-actions {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .modal-action-btn {
+      flex: 1;
+      height: 42px;
+      border-radius: 999px;
+      border: 2.5px solid #18120e;
+      font-size: 0.82rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #18120e;
+      text-decoration: none;
+      color: #18120e;
+    }
+
+    .modal-action-btn.primary {
+      background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+    }
+
+    .modal-action-btn.secondary {
+      background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%);
+    }
+
+    #startCameraPrompt {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(9, 13, 22, 0.78);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .prompt-btn {
+      padding: 14px 24px;
+      border-radius: 999px;
+      border: 3px solid #18120e;
+      background: #10b981;
+      color: #18120e;
+      font-size: 1rem;
+      font-weight: 900;
+      box-shadow: 0 4px 0 #18120e;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Câmera e Renderização 3D ocupando 100% da tela -->
+  <div id="viewportContainer">
+    <video id="arVideo" playsinline autoplay muted></video>
+    <canvas id="arOverlayCanvas"></canvas>
+  </div>
+
+  <!-- HUD Compacto Estilo Barra de Personagem de Jogo + Lista de Combos Ativos -->
+  <div id="cornerScoreHud" class="corner-score-hud">
+    <div id="gameCharPill" class="game-char-pill" title="Toque para abrir os 4 pilares da Sustentabilidade">
+      <!-- Círculo de Score à esquerda -->
+      <div class="gauge-wrapper">
+        <svg class="gauge-svg" viewBox="0 0 90 90">
+          <circle class="gauge-bg" cx="45" cy="45" r="38" />
+          <circle id="scoreGaugeCircle" class="gauge-fg" cx="45" cy="45" r="38" />
+        </svg>
+        <div class="gauge-center">
+          <span id="totalScoreValue">0</span>
+          <span class="gauge-sublabel">Score</span>
+        </div>
+      </div>
+
+      <!-- Barra de Status estilo Jogo no centro -->
+      <div class="char-stats-col">
+        <div class="char-status-row">
+          <span id="scoreRatingBadge">Aponte cartas</span>
+        </div>
+        <div class="game-hp-track">
+          <div id="scoreHpFill"></div>
+          <div class="game-hp-ticks"></div>
+        </div>
+        <div class="pillar-micro-row" title="Biodiversidade • Água • Produção • Bem-Estar">
+          <div class="micro-pip"><div id="pip_bio" class="micro-pip-fill" style="background:#10b981;"></div></div>
+          <div class="micro-pip"><div id="pip_water" class="micro-pip-fill" style="background:#0ea5e9;"></div></div>
+          <div class="micro-pip"><div id="pip_prod" class="micro-pip-fill" style="background:#eab308;"></div></div>
+          <div class="micro-pip"><div id="pip_well" class="micro-pip-fill" style="background:#a855f7;"></div></div>
+        </div>
+      </div>
+
+      <!-- Avatar da Produtora Rural à direita -->
+      <div class="char-avatar-frame">
+        <canvas id="producerCharCanvas" width="180" height="190"></canvas>
+      </div>
+    </div>
+
+    <!-- Gaveta expansível dos 4 pilares (abre ao tocar na barra da personagem) -->
+    <div class="pillars-drawer">
+      <div class="mini-pillar">
+        <div class="mini-pillar-head"><span>🌿 Biodiversidade</span><span id="val_bio">0%</span></div>
+        <div class="mini-track"><div id="bar_bio" class="mini-fill" style="width:0%; background:#10b981;"></div></div>
+      </div>
+      <div class="mini-pillar">
+        <div class="mini-pillar-head"><span>💧 Água & Solo</span><span id="val_water">0%</span></div>
+        <div class="mini-track"><div id="bar_water" class="mini-fill" style="width:0%; background:#0ea5e9;"></div></div>
+      </div>
+      <div class="mini-pillar">
+        <div class="mini-pillar-head"><span>🌾 Produção</span><span id="val_prod">0%</span></div>
+        <div class="mini-track"><div id="bar_prod" class="mini-fill" style="width:0%; background:#eab308;"></div></div>
+      </div>
+      <div class="mini-pillar">
+        <div class="mini-pillar-head"><span>🏡 Bem-Estar</span><span id="val_well">0%</span></div>
+        <div class="mini-track"><div id="bar_well" class="mini-fill" style="width:0%; background:#a855f7;"></div></div>
+      </div>
+    </div>
+
+    <!-- Lista de todos os combos identificados na mesa (logo abaixo da barra) -->
+    <div id="activeCombosContainer">
+      <div id="combosHeaderChip" class="combos-header-chip">⚡ Combos (0)</div>
+      <div id="activeCombosList"></div>
+    </div>
+  </div>
+
+  <!-- Barra de ferramentas inferior com Botão de Tirar Foto -->
+  <div class="corner-tools">
+    <button id="btnTakePhoto" class="photo-capture-btn" title="Capturar Foto com Moldura PPGDTSA">
+      <span>📸</span>
+      <span>Tirar Foto</span>
+    </button>
+    <button id="btnFlipCamera" class="icon-btn" title="Alternar Câmera Frontal/Traseira">🔄</button>
+    <a href="./cards.html" target="_blank" class="icon-btn" title="Abrir Folha de Cartas para Impressão">🖨️</a>
+    <a href="./tabuleiro.html" target="_blank" class="icon-btn" title="Abrir Tabuleiro Cenário A4 para Impressão">🗺️</a>
+  </div>
+
+  <!-- Efeito de Flash e Modal da Foto Pronta para Salvar/Compartilhar -->
+  <div id="cameraFlashOverlay"></div>
+
+  <div id="photoPreviewModal">
+    <div class="photo-modal-card">
+      <div class="photo-modal-header">
+        <span class="photo-modal-title">📸 Organização do Sistema agroindustrial • @ppgdtsa.ufpel</span>
+        <button id="btnClosePhotoModal" class="photo-modal-close" title="Fechar">✕</button>
+      </div>
+      <div class="photo-preview-frame">
+        <img id="capturedPhotoImg" alt="Foto Organização do Sistema agroindustrial PPGDTSA" />
+      </div>
+      <div class="photo-modal-actions">
+        <button id="btnDownloadPhoto" class="modal-action-btn primary">💾 Salvar Foto</button>
+        <button id="btnSharePhoto" class="modal-action-btn secondary">📲 Compartilhar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botão de permissão caso o navegador bloqueie autoplay da câmera -->
+  <div id="startCameraPrompt">
+    <button id="btnStartCameraPrompt" class="prompt-btn">📷 Toque para Abrir a Câmera AR</button>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
